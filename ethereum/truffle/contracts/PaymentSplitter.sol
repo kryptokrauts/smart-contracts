@@ -11,7 +11,7 @@ contract PaymentSplitter {
   }
 
   RecipientCondition[] public recipientConditions;
-  mapping (address => uint) public ownerToConditionIdMapping;
+  mapping (address => uint) public recipientToConditionIdMapping;
 
   event PaymentReceived(address sender, uint value);
   event SingleRecipientUpdated(address payable oldRecipient, address payable newRecipient);
@@ -32,7 +32,7 @@ contract PaymentSplitter {
   }
 
   modifier isOwnerOrRecipient(uint _conditionId) {
-    require(msg.sender == owner || ownerToConditionIdMapping[msg.sender] == _conditionId, "sender must be owner of contract or recipientcondition");
+    require(msg.sender == owner || recipientToConditionIdMapping[msg.sender] == _conditionId, "sender must be owner of contract or recipientcondition");
     _;
   }
 
@@ -55,16 +55,21 @@ contract PaymentSplitter {
     }
   }
 
+  function transferOwnership(address _newOwner) public isOwner {
+    owner = _newOwner;
+  }
+
   function addRecipients(address payable[] memory _recipients, uint8[] memory _weights) private {
     for(uint i=0; i<_recipients.length; i++) {
       uint id = recipientConditions.push(RecipientCondition(_recipients[i], _weights[i]));
-      require(ownerToConditionIdMapping[_recipients[i]] == 0, "address cannot be added twice");
-      ownerToConditionIdMapping[_recipients[i]] = id;
+      require(recipientToConditionIdMapping[_recipients[i]] == 0, "address cannot be added twice");
+      recipientToConditionIdMapping[_recipients[i]] = id;
       emit RecipientAdded(_recipients[i], _weights[i]);
     }
   }
 
   function updateRecipient(uint _conditionId, address payable _newRecipient) public isOwnerOrRecipient(_conditionId) {
+    require(recipientToConditionIdMapping[_newRecipient] == 0, "address cannot be added twice");
     RecipientCondition storage recipientCondition = recipientConditions[_conditionId - 1];
     emit SingleRecipientUpdated(recipientCondition.recipient, _newRecipient);
     recipientCondition.recipient = _newRecipient;
@@ -72,7 +77,7 @@ contract PaymentSplitter {
 
   function updateRecipientConditions(address payable[] memory _recipients, uint8[] memory _weights) public isOwner validConditions(_recipients, _weights) {
     for(uint i=0; i<recipientConditions.length; i++) {
-      delete(ownerToConditionIdMapping[recipientConditions[i].recipient]);
+      delete(recipientToConditionIdMapping[recipientConditions[i].recipient]);
     }
     delete recipientConditions;
     emit AllRecipientsReset();

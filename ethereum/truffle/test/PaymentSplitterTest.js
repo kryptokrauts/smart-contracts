@@ -30,12 +30,15 @@ contract("PaymentSplitter", accounts => {
         paymentSplitter = await PaymentSplitter.new(_recipients, _weights, { from: owner });
     }
 
-    describe('DEPLOYMENT', function() {
+    describe('DEPLOYMENT positive', function() {
         it('should be possible to deploy contract with valid params', async function () {
             await deployContract(threeRecipients, validWeightsThreeRecipients);
             let ownerOfContract = await paymentSplitter.owner.call();
             expect(ownerOfContract).equal(owner);
         });
+    });
+
+    describe('DEPLOYMENT negative', function() {
         it('should NOT be possible to deploy contract with invalid weights', async function () {
             try {
                 await deployContract(threeRecipients, invalidWeights);
@@ -71,22 +74,70 @@ contract("PaymentSplitter", accounts => {
     });
 
     describe('FUNCTIONS positive', function() {
-        it('payment is splitted correctly', async function () {
+        it('should be possible to transfer ownership as owner', async function () {
+            await deployContract(threeRecipients, validWeightsThreeRecipients);
+            await paymentSplitter.transferOwnership(recipient1, {from: owner});
+            let newOwner = await paymentSplitter.owner.call();
+            expect(newOwner).equal(recipient1);
+        });
+        it('payment should be splitted correctly', async function () {
             await deployContract(threeRecipients, validWeightsThreeRecipients);
             await testPayoutForInitialRecipients(false);
         });
-        it('update of all recipient conditions is working and payout still handled correctly', async function () {
+        it('payment should be splitted correctly after update of all recipient conditions', async function () {
             await deployContract(threeRecipients, validWeightsThreeRecipients);
             await testPayoutForInitialRecipients(false);
             await paymentSplitter.updateRecipientConditions(fourRecipientsUpdated, validWeightsFourRecipients, {from: owner});
             await testPayoutForUpdatedRecipients();
         });
-        it('update of single recipient is working and payout still handled correctly', async function () {
+        it('payment should be splitted correctly after update of single recipient', async function () {
             await deployContract(threeRecipients, validWeightsThreeRecipients);
             await testPayoutForInitialRecipients(false);
-            let conditionId = await paymentSplitter.ownerToConditionIdMapping.call(recipient1);
+            let conditionId = await paymentSplitter.recipientToConditionIdMapping.call(recipient1);
             await paymentSplitter.updateRecipient(conditionId, singleUpdatedRecipient1, {from: owner});
             await testPayoutForInitialRecipients(true);
+        });
+        it('should be possible to update recipient from the recipients address', async function () {
+            await deployContract(threeRecipients, validWeightsThreeRecipients);
+            let conditionId = await paymentSplitter.recipientToConditionIdMapping.call(recipient1);
+            await paymentSplitter.updateRecipient(conditionId, singleUpdatedRecipient1, {from: recipient1});
+        });
+    });
+
+    describe('FUNCTIONS negative', function() {
+        it('should NOT be possible to change owner from other address than owner', async function () {
+            await deployContract(threeRecipients, validWeightsThreeRecipients);
+            try {
+                await paymentSplitter.transferOwnership(recipient1, {from: recipient1});
+            } catch(error) {
+                assertInvalidOpCode(error);
+            }
+        });
+        it('should NOT be possible to update all recipient conditions from address other than owner', async function () {
+            await deployContract(threeRecipients, validWeightsThreeRecipients);
+            try {
+                await paymentSplitter.updateRecipientConditions(fourRecipientsUpdated, validWeightsFourRecipients, {from: recipient1});
+            } catch(error) {
+                assertInvalidOpCode(error);
+            }
+        });
+        it('should NOT be possible to update a recipient with an address that already exists', async function () {
+            await deployContract(threeRecipients, validWeightsThreeRecipients);
+            let conditionId = await paymentSplitter.recipientToConditionIdMapping.call(recipient1);
+            try {
+                await paymentSplitter.updateRecipient(conditionId, recipient2, {from: owner});
+            } catch(error) {
+                assertInvalidOpCode(error);
+            }
+        });
+        it('should NOT be possible to update a recipient from an address other than recipient itself or owner', async function () {
+            await deployContract(threeRecipients, validWeightsThreeRecipients);
+            let conditionId = await paymentSplitter.recipientToConditionIdMapping.call(recipient1);
+            try {
+                await paymentSplitter.updateRecipient(conditionId, singleUpdatedRecipient1, {from: singleUpdatedRecipient1});
+            } catch(error) {
+                assertInvalidOpCode(error);
+            }
         });
     });
 
