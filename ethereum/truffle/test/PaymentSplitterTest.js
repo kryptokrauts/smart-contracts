@@ -73,24 +73,21 @@ contract("PaymentSplitter", accounts => {
     describe('FUNCTIONS positive', function() {
         it('payment is splitted correctly', async function () {
             await deployContract(threeRecipients, validWeightsThreeRecipients);
-            testPayoutForInitialRecipients(false);
+            await testPayoutForInitialRecipients(false);
         });
         it('update of all recipient conditions is working and payout still handled correctly', async function () {
             await deployContract(threeRecipients, validWeightsThreeRecipients);
-            testPayoutForInitialRecipients(false);
+            await testPayoutForInitialRecipients(false);
             await paymentSplitter.updateRecipientConditions(fourRecipientsUpdated, validWeightsFourRecipients, {from: owner});
-            testPayoutForUpdatedRecipients();
-            console.log(paymentSplitter.address);
+            await testPayoutForUpdatedRecipients();
         });
-        // TODO -> check why this fails
-/*         it('update of single recipient is working and payout still handled correctly', async function () {
+        it('update of single recipient is working and payout still handled correctly', async function () {
             await deployContract(threeRecipients, validWeightsThreeRecipients);
-            console.log(paymentSplitter.address);
-            testPayoutForInitialRecipients(false);
+            await testPayoutForInitialRecipients(false);
             let conditionId = await paymentSplitter.ownerToConditionIdMapping.call(recipient1);
             await paymentSplitter.updateRecipient(conditionId, singleUpdatedRecipient1, {from: owner});
-            testPayoutForInitialRecipients(true);
-        }); */
+            await testPayoutForInitialRecipients(true);
+        });
     });
 
     async function testPayoutForInitialRecipients(updated) {
@@ -103,7 +100,6 @@ contract("PaymentSplitter", accounts => {
         } else {
             changeableRecipient = singleUpdatedRecipient1;
         }
-        //console.log(changeableRecipient);
 
         let balanceRecipient1 = new BN(await web3.eth.getBalance(changeableRecipient));
         let balanceRecipient2 = new BN(await web3.eth.getBalance(recipient2));
