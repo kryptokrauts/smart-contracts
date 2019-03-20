@@ -11,21 +11,18 @@ contract PaymentSplitter {
   }
 
   RecipientCondition[] public recipientConditions;
-  mapping (uint => address) public conditionToOwnerMapping;
+  mapping (address => uint) public ownerToConditionIdMapping;
 
   event PaymentReceived(address sender, uint value);
   event SingleRecipientUpdated(address payable oldRecipient, address payable newRecipient);
-  event AllRecipientsUpdated(address payable[] newRecipients, uint8[] newWeights);
+  event RecipientAdded(address payable recipient, uint8 weight);
+  event AllRecipientsReset();
 
   using SafeMath8 for uint8;
 
   constructor(address payable[] memory _recipients, uint8[] memory _weights) public validConditions(_recipients, _weights) {
     owner = msg.sender;
-    for(uint i=0; i<_recipients.length; i++) {
-      uint id = recipientConditions.push(RecipientCondition(_recipients[i], _weights[i])) - 1;
-      conditionToOwnerMapping[id] = _recipients[i];
-    }
-    emit AllRecipientsUpdated(_recipients, _weights);
+    addRecipients(_recipients, _weights);
   }
 
   modifier isOwner() {
@@ -34,7 +31,7 @@ contract PaymentSplitter {
   }
 
   modifier isOwnerOrRecipient(uint _conditionId) {
-    require(msg.sender == owner || conditionToOwnerMapping[_conditionId] == msg.sender, "sender must be owner of contract or recipientcondition");
+    require(msg.sender == owner || ownerToConditionIdMapping[msg.sender] == _conditionId, "sender must be owner of contract or recipientcondition");
     _;
   }
 
@@ -57,20 +54,27 @@ contract PaymentSplitter {
     }
   }
 
+  function addRecipients(address payable[] memory _recipients, uint8[] memory _weights) private {
+    for(uint i=0; i<_recipients.length; i++) {
+      uint id = recipientConditions.push(RecipientCondition(_recipients[i], _weights[i]));
+      require(ownerToConditionIdMapping[_recipients[i]] == 0, "address cannot be added twice");
+      ownerToConditionIdMapping[_recipients[i]] = id;
+      emit RecipientAdded(_recipients[i], _weights[i]);
+    }
+  }
+
   function updateRecipient(uint _conditionId, address payable _newRecipient) public isOwnerOrRecipient(_conditionId) {
-    RecipientCondition storage recipientCondition = recipientConditions[_conditionId];
+    RecipientCondition storage recipientCondition = recipientConditions[_conditionId - 1];
+    emit SingleRecipientUpdated(recipientCondition.recipient, _newRecipient);
     recipientCondition.recipient = _newRecipient;
   }
 
   function updateRecipientConditions(address payable[] memory _recipients, uint8[] memory _weights) public isOwner validConditions(_recipients, _weights) {
     for(uint i=0; i<recipientConditions.length; i++) {
-      delete(conditionToOwnerMapping[i]);
+      delete(ownerToConditionIdMapping[recipientConditions[i].recipient]);
     }
     delete recipientConditions;
-    for(uint i=0; i<_recipients.length; i++) {
-      uint id = recipientConditions.push(RecipientCondition(_recipients[i], _weights[i])) - 1;
-      conditionToOwnerMapping[id] = _recipients[i];
-    }
-    emit AllRecipientsUpdated(_recipients, _weights);
+    emit AllRecipientsReset();
+    addRecipients(_recipients, _weights);
   }
 }

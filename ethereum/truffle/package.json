@@ -1,0 +1,31 @@
+{
+  "name": "kk-smart-contracts-truffle",
+  "version": "1.0.0",
+  "description": "",
+  "main": "",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "bn.js": "^4.11.8"
+  },
+  "scripts": {
+    "test": "truffle test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kryptokrauts/smart-contracts.git"
+  },
+  "keywords": [
+    "smart-contract",
+    "ethereum",
+    "solidity"
+  ],
+  "author": "kryptokrauts.com",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kryptokrauts/smart-contracts/issues"
+  },
+  "homepage": "https://github.com/kryptokrauts/smart-contracts#readme"
+}
