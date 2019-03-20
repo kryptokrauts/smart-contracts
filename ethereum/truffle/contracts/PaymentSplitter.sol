@@ -18,6 +18,7 @@ contract PaymentSplitter {
   event RecipientAdded(address payable recipient, uint8 weight);
   event AllRecipientsReset();
 
+  using SafeMath for uint;
   using SafeMath8 for uint8;
 
   constructor(address payable[] memory _recipients, uint8[] memory _weights) public validConditions(_recipients, _weights) {
@@ -50,7 +51,7 @@ contract PaymentSplitter {
   function() external payable {
     emit PaymentReceived(msg.sender, msg.value);
     for(uint i=0; i<recipientConditions.length; i++) {
-      recipientConditions[i].recipient.transfer(msg.value / 100 * recipientConditions[i].weight);
+      recipientConditions[i].recipient.transfer(msg.value.div(100).mul(recipientConditions[i].weight));
     }
   }
 
