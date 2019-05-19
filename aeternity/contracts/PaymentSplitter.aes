@@ -31,10 +31,11 @@ contract PaymentSplitter =
    public function getWeight(who': address) : int =
       Map.lookup_default(who', state.recipientConditions, 0)
 
-   // PAY FUNCTION
-   public function pay() =
+   // PAY-AND-SPLIT FUNCTION
+   public function payAndSplit() =
+      let totalValue: int = Contract.balance + Call.value // use total AE in case someone sent AE to this contract without calling the payAndSplit() function
+      require(totalValue > 0, "contract didn't receive any payment")
       let recipientConditions: list((address, int)) = Map.to_list(state.recipientConditions)
-      let totalValue: int = Contract.balance + Call.value // use total AE in case someone sent AE to this contract without calling the pay() function
       split(recipientConditions, totalValue)
       Chain.event(PaymentReceivedAndSplitted(Call.caller, Call.value, totalValue))
 

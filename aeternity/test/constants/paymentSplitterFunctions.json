@@ -4,7 +4,7 @@
     "IS_RECIPIENT": "isRecipient",
     "GET_WEIGHT": "getWeight",
 
-    "PAY": "pay",
+    "PAY_AND_SPLIT": "payAndSplit",
     "TRANSFER_OWNERSHIP": "transferOwnership",
     "UPDATE_ADDRESS": "updateAddress",
     "UPDATE_RECIPIENT_CONDITIONS": "updateRecipientConditions"
