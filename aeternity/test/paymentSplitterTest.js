@@ -77,9 +77,9 @@ describe('PaymentSplitter Contract', () => {
         recipientsMap.set(recipientThreeKeyPair.publicKey, 5);
 
         const contractClientFailDeploy = await clientOwner.getContractInstance(contractSource);
-        const deploy = await contractClientFailDeploy.deploy([recipientsMap]);
+        const deploy = await contractClientFailDeploy.deploy([recipientsMap]).catch(x => x);
 
-        assert.equal(deploy.deployInfo.result.returnType, 'revert', 'Deploy the PaymentSplitter Smart Contract did not revert');
+        assert.equal(deploy.returnType, 'revert', 'Deploy the PaymentSplitter Smart Contract did not revert');
     });
 
 });

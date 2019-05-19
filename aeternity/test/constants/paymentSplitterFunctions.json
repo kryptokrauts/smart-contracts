@@ -1,4 +1,11 @@
 {
+    "GET_OWNER": "getOwner",
+    "GET_RECIPIENTS_COUNT": "getRecipientsCount",
+    "IS_RECIPIENT": "isRecipient",
+    "GET_WEIGHT": "getWeight",
+
+    "PAY": "pay",
+    "TRANSFER_OWNERSHIP": "transferOwnership",
     "UPDATE_ADDRESS": "updateAddress",
-    "UPDATE_RECIPIENT_MAP": "updateRecipientMap"
+    "UPDATE_RECIPIENT_CONDITIONS": "updateRecipientConditions"
 }
