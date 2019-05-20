@@ -33,11 +33,10 @@ contract PaymentSplitter =
 
    // PAY-AND-SPLIT FUNCTION
    public function payAndSplit() =
-      let totalValue: int = Contract.balance + Call.value // use total AE in case someone sent AE to this contract without calling the payAndSplit() function
-      require(totalValue > 0, "contract didn't receive any payment")
+      require(Contract.balance > 0, "contract didn't receive any payment")
       let recipientConditions: list((address, int)) = Map.to_list(state.recipientConditions)
-      split(recipientConditions, totalValue)
-      Chain.event(PaymentReceivedAndSplitted(Call.caller, Call.value, totalValue))
+      split(recipientConditions, Contract.balance)
+      Chain.event(PaymentReceivedAndSplitted(Call.caller, Call.value, Contract.balance))
 
    // STATEFUL FUNCTIONS
 

@@ -150,22 +150,19 @@ describe('PaymentSplitter Contract', () => {
             const contractBalanceInitial = new BigNumber(await clientOwner.balance(contractClientOwner.deployInfo.address));
             assert.equal(contractBalanceInitial, 0)
 
-            const aettos = new BigNumber(2000000000);
+            const aettos = new BigNumber(2000);
             const expectedPayout1 = aettos.dividedBy(100).multipliedBy(35);
             const expectedPayout2 = aettos.dividedBy(100).multipliedBy(40);
             const expectedPayout3 = aettos.dividedBy(100).multipliedBy(25);
 
-            // TODO -> check why there is always an error mining this transactions
-            // e.g. Error: Giving up after 10 blocks mined. TxHash th_2RkSzGfBi9A7YKRaXndFLRwqF8wnMKXaRrdW8XPWi7D1mnzL6V
+            await contractClientNonRecipient.call(paymentSplitterFunctions.PAY_AND_SPLIT, [], {amount: aettos});
+            const recipientOneBalanceNew = new BigNumber(await clientRecipientOne.balance(recipientOneKeyPair.publicKey));
+            const recipientTwoBalanceNew = new BigNumber(await clientRecipientTwo.balance(recipientTwoKeyPair.publicKey));
+            const recipientThreeBalanceNew = new BigNumber(await clientRecipientThree.balance(recipientThreeKeyPair.publicKey));
 
-            // await contractClientNonRecipient.call(paymentSplitterFunctions.PAY_AND_SPLIT, [], {amount: aettos, gas: 10000000});
-            // const recipientOneBalanceNew = new BigNumber(await clientRecipientOne.balance(recipientOneKeyPair.publicKey));
-            // const recipientTwoBalanceNew = new BigNumber(await clientRecipientTwo.balance(recipientTwoKeyPair.publicKey));
-            // const recipientThreeBalanceNew = new BigNumber(await clientRecipientThree.balance(recipientThreeKeyPair.publicKey));
-
-            // assert.equal(recipientOneBalanceNew, recipientOneBalanceInitial.plus(expectedPayout1));
-            // assert.equal(recipientTwoBalanceNew, recipientTwoBalanceInitial.plus(expectedPayout2));
-            // assert.equal(recipientThreeBalanceNew, recipientThreeBalanceInitial.plus(expectedPayout3));
+            assert.equal(recipientOneBalanceNew, recipientOneBalanceInitial.plus(expectedPayout1));
+            assert.equal(recipientTwoBalanceNew, recipientTwoBalanceInitial.plus(expectedPayout2));
+            assert.equal(recipientThreeBalanceNew, recipientThreeBalanceInitial.plus(expectedPayout3));
         });
     });
 });
