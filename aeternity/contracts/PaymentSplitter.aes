@@ -73,11 +73,13 @@ contract PaymentSplitter =
 
    private function fireRecipientAddedEvents(recipientConditions': list((address, int))) =
       switch(recipientConditions')
+         [] => ()
          (recipient, weight) :: l' =>
             Chain.event(RecipientAdded(recipient, weight))
 
    private function split(recipientConditions': list((address, int)), totalValue: int) =
       switch(recipientConditions')
+         [] => ()
          (recipient, weight) :: l' =>
             Chain.spend(recipient, totalValue / 100 * weight)
             split(l', totalValue)

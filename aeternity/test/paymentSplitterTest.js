@@ -130,21 +130,18 @@ describe('PaymentSplitter Contract', () => {
             // is recipient true
             let isRecipientResult = await contractClientOwner.call(paymentSplitterFunctions.IS_RECIPIENT, [recipientOneKeyPair.publicKey], {callStatic: true});
             let decodedIsRecipientResult = await isRecipientResult.decode();
-            assert.equal(decodedIsRecipientResult, true)
+            assert.isTrue(decodedIsRecipientResult)
 
             // is recipient false
             isRecipientResult = await contractClientOwner.call(paymentSplitterFunctions.IS_RECIPIENT, [nonRecipientKeyPair.publicKey], {callStatic: true});
             decodedIsRecipientResult = await isRecipientResult.decode();
-            assert.equal(decodedIsRecipientResult, false)
+            assert.isFalse(decodedIsRecipientResult)
         });
 
         it('should split payment correctly when contract balance is 0', async () => {
             const recipientOneBalanceInitial = new BigNumber(await clientRecipientOne.balance(recipientOneKeyPair.publicKey));
             const recipientTwoBalanceInitial = new BigNumber(await clientRecipientTwo.balance(recipientTwoKeyPair.publicKey));
             const recipientThreeBalanceInitial = new BigNumber(await clientRecipientThree.balance(recipientThreeKeyPair.publicKey));
-            console.log(recipientOneBalanceInitial);
-            console.log(recipientTwoBalanceInitial);
-            console.log(recipientThreeBalanceInitial);
 
             // check if contract balance is 0
             const contractBalanceInitial = new BigNumber(await clientOwner.balance(contractClientOwner.deployInfo.address));
@@ -160,9 +157,35 @@ describe('PaymentSplitter Contract', () => {
             const recipientTwoBalanceNew = new BigNumber(await clientRecipientTwo.balance(recipientTwoKeyPair.publicKey));
             const recipientThreeBalanceNew = new BigNumber(await clientRecipientThree.balance(recipientThreeKeyPair.publicKey));
 
-            assert.equal(recipientOneBalanceNew, recipientOneBalanceInitial.plus(expectedPayout1));
-            assert.equal(recipientTwoBalanceNew, recipientTwoBalanceInitial.plus(expectedPayout2));
-            assert.equal(recipientThreeBalanceNew, recipientThreeBalanceInitial.plus(expectedPayout3));
+            assert.isTrue(recipientOneBalanceNew.eq(recipientOneBalanceInitial.plus(expectedPayout1)));
+            assert.isTrue(recipientTwoBalanceNew.eq(recipientTwoBalanceInitial.plus(expectedPayout2)));
+            assert.isTrue(recipientThreeBalanceNew.eq(recipientThreeBalanceInitial.plus(expectedPayout3)));
+        });
+
+        it('should split payment correctly when contract balance is 5000 aettos', async () => {
+            const recipientOneBalanceInitial = new BigNumber(await clientRecipientOne.balance(recipientOneKeyPair.publicKey));
+            const recipientTwoBalanceInitial = new BigNumber(await clientRecipientTwo.balance(recipientTwoKeyPair.publicKey));
+            const recipientThreeBalanceInitial = new BigNumber(await clientRecipientThree.balance(recipientThreeKeyPair.publicKey));
+
+            const initialAettos = new BigNumber(5000);
+            await clientNonRecipient.spend(initialAettos, contractClientOwner.deployInfo.address.replace('ct_', 'ak_'))
+            // check if contract balance is 5000 aettos
+            const contractBalanceInitial = new BigNumber(await clientOwner.balance(contractClientOwner.deployInfo.address));
+            assert.isTrue(contractBalanceInitial.eq(initialAettos))
+
+            const aettos = new BigNumber(2000);
+            const expectedPayout1 = aettos.plus(initialAettos).dividedBy(100).multipliedBy(35);
+            const expectedPayout2 = aettos.plus(initialAettos).dividedBy(100).multipliedBy(40);
+            const expectedPayout3 = aettos.plus(initialAettos).dividedBy(100).multipliedBy(25);
+
+            await contractClientNonRecipient.call(paymentSplitterFunctions.PAY_AND_SPLIT, [], {amount: aettos});
+            const recipientOneBalanceNew = new BigNumber(await clientRecipientOne.balance(recipientOneKeyPair.publicKey));
+            const recipientTwoBalanceNew = new BigNumber(await clientRecipientTwo.balance(recipientTwoKeyPair.publicKey));
+            const recipientThreeBalanceNew = new BigNumber(await clientRecipientThree.balance(recipientThreeKeyPair.publicKey));
+
+            assert.isTrue(recipientOneBalanceNew.eq(recipientOneBalanceInitial.plus(expectedPayout1)));
+            assert.isTrue(recipientTwoBalanceNew.eq(recipientTwoBalanceInitial.plus(expectedPayout2)));
+            assert.isTrue(recipientThreeBalanceNew.eq(recipientThreeBalanceInitial.plus(expectedPayout3)));
         });
     });
 });
