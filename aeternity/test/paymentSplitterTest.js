@@ -13,13 +13,16 @@ const paymentSplitterFunctions = require('./constants/paymentSplitterFunctions')
 describe('PaymentSplitter Contract', () => {
 
     let contractSource = utils.readFileRelative('./contracts/PaymentSplitter.aes', 'utf-8');
-    let contractClientOwner, contractClientRecipientOne, contractClientRecipientTwo, contractClientRecipientThree, contractClientNonRecipient;
+    let contractClientOwner, contractClientRecipientOne, contractClientNonRecipient;
     let clientOwner, clientRecipientOne, clientRecipientTwo, clientRecipientThree, clientNonRecipient;
     let ownerKeyPair = wallets[0];
     let recipientOneKeyPair = wallets[1];
     let recipientTwoKeyPair = wallets[2];
     let recipientThreeKeyPair = wallets[3];
-    let nonRecipientKeyPair = wallets[4];
+    let recipientFourKeyPair = wallets[4]
+    let recipientFiveKeyPair = wallets[5]
+    let recipientSixKeyPair = wallets[6]
+    let nonRecipientKeyPair = wallets[7];
     let recipientConditions = new Map();
 
     before(async () => {
@@ -94,8 +97,6 @@ describe('PaymentSplitter Contract', () => {
 
             // initialize contractClient with other accounts
             contractClientRecipientOne = await clientRecipientOne.getContractInstance(contractSource, {contractAddress: deploy.deployInfo.address});
-            contractClientRecipientTwo = await clientRecipientTwo.getContractInstance(contractSource, {contractAddress: deploy.deployInfo.address});
-            contractClientRecipientThree = await clientRecipientThree.getContractInstance(contractSource, {contractAddress: deploy.deployInfo.address});
             contractClientNonRecipient = await clientNonRecipient.getContractInstance(contractSource, {contractAddress: deploy.deployInfo.address});
         });
     });
@@ -130,12 +131,12 @@ describe('PaymentSplitter Contract', () => {
             // is recipient true
             let isRecipientResult = await contractClientOwner.call(paymentSplitterFunctions.IS_RECIPIENT, [recipientOneKeyPair.publicKey], {callStatic: true});
             let decodedIsRecipientResult = await isRecipientResult.decode();
-            assert.isTrue(decodedIsRecipientResult)
+            assert.isTrue(decodedIsRecipientResult);
 
             // is recipient false
             isRecipientResult = await contractClientOwner.call(paymentSplitterFunctions.IS_RECIPIENT, [nonRecipientKeyPair.publicKey], {callStatic: true});
             decodedIsRecipientResult = await isRecipientResult.decode();
-            assert.isFalse(decodedIsRecipientResult)
+            assert.isFalse(decodedIsRecipientResult);
         });
 
         it('should split payment correctly when contract balance is 0', async () => {
@@ -186,6 +187,78 @@ describe('PaymentSplitter Contract', () => {
             assert.isTrue(recipientOneBalanceNew.eq(recipientOneBalanceInitial.plus(expectedPayout1)));
             assert.isTrue(recipientTwoBalanceNew.eq(recipientTwoBalanceInitial.plus(expectedPayout2)));
             assert.isTrue(recipientThreeBalanceNew.eq(recipientThreeBalanceInitial.plus(expectedPayout3)));
+        });
+
+        it('update address fails as wrong caller', async () => {
+            const result = await contractClientRecipientOne.call(paymentSplitterFunctions.UPDATE_ADDRESS, [recipientTwoKeyPair.publicKey, nonRecipientKeyPair.publicKey]).catch(x => x);
+            assert.equal(result.returnType, 'revert');
+        });
+
+        it('update address succeeds as recipient and owner', async () => {
+            await contractClientRecipientOne.call(paymentSplitterFunctions.UPDATE_ADDRESS, [recipientOneKeyPair.publicKey, nonRecipientKeyPair.publicKey]);
+            // check if nonRecipient is now recipient
+            let expectedWeight = 35;
+            let weightResult = await contractClientOwner.call(paymentSplitterFunctions.GET_WEIGHT, [nonRecipientKeyPair.publicKey], {callStatic: true});
+            let decodedWeightResult = await weightResult.decode();
+            assert.equal(decodedWeightResult, expectedWeight);
+            // check if recipientOne is no longer recipient
+            let isRecipientResult = await contractClientOwner.call(paymentSplitterFunctions.IS_RECIPIENT, [recipientOneKeyPair.publicKey], {callStatic: true});
+            let decodedIsRecipientResult = await isRecipientResult.decode();
+            assert.isFalse(decodedIsRecipientResult);
+
+            await contractClientOwner.call(paymentSplitterFunctions.UPDATE_ADDRESS, [nonRecipientKeyPair.publicKey, recipientOneKeyPair.publicKey]);
+            // check if recipientOne is recipient again
+            weightResult = await contractClientOwner.call(paymentSplitterFunctions.GET_WEIGHT, [recipientOneKeyPair.publicKey], {callStatic: true});
+            decodedWeightResult = await weightResult.decode();
+            assert.equal(decodedWeightResult, expectedWeight);
+            // check if nonRecipient is again no recipient
+            isRecipientResult = await contractClientOwner.call(paymentSplitterFunctions.IS_RECIPIENT, [nonRecipientKeyPair.publicKey], {callStatic: true});
+            decodedIsRecipientResult = await isRecipientResult.decode();
+            assert.isFalse(decodedIsRecipientResult);
+
+            // size should still be 3
+            const expectedRecipientsCount = 3;
+            const countResult = await contractClientOwner.call(paymentSplitterFunctions.GET_RECIPIENTS_COUNT, [], {callStatic: true});
+            const decodedCountResult = await countResult.decode();
+            assert.equal(decodedCountResult, expectedRecipientsCount);
+        });
+
+        it('update all recipientConditions fails as other caller than owner', async () => {
+            recipientConditions.set(recipientOneKeyPair.publicKey, 15);
+            recipientConditions.set(recipientTwoKeyPair.publicKey, 15);
+            recipientConditions.set(recipientThreeKeyPair.publicKey, 20);
+            recipientConditions.set(recipientFourKeyPair.publicKey, 20);
+            recipientConditions.set(recipientFiveKeyPair.publicKey, 25);
+            recipientConditions.set(recipientSixKeyPair.publicKey, 5);
+            const result = await contractClientRecipientOne.call(paymentSplitterFunctions.UPDATE_RECIPIENT_CONDITIONS, [recipientConditions]).catch(x => x);
+            assert.equal(result.returnType, 'revert');
+        });
+
+        it('update all recipientConditions succeeds as owner', async () => {
+            await contractClientOwner.call(paymentSplitterFunctions.UPDATE_RECIPIENT_CONDITIONS, [recipientConditions]);
+            // size should now be 6
+            const expectedRecipientsCount = 6;
+            const countResult = await contractClientOwner.call(paymentSplitterFunctions.GET_RECIPIENTS_COUNT, [], {callStatic: true});
+            const decodedCountResult = await countResult.decode();
+            assert.equal(decodedCountResult, expectedRecipientsCount);
+
+            // check the weight of recipientFive
+            let expectedWeight = 25;
+            let weightResult = await contractClientOwner.call(paymentSplitterFunctions.GET_WEIGHT, [recipientFiveKeyPair.publicKey], {callStatic: true});
+            let decodedWeightResult = await weightResult.decode();
+            assert.equal(decodedWeightResult, expectedWeight);
+        });
+
+        it('transfer of ownership fails as other caller than owner', async () => {
+            const result = await contractClientRecipientOne.call(paymentSplitterFunctions.TRANSFER_OWNERSHIP, [recipientOneKeyPair.publicKey]).catch(x => x);
+            assert.equal(result.returnType, 'revert');
+        });
+
+        it('transfer of ownership succeeds as owner', async () => {
+            await contractClientOwner.call(paymentSplitterFunctions.TRANSFER_OWNERSHIP, [recipientOneKeyPair.publicKey]);
+            const ownerResult = await contractClientOwner.call(paymentSplitterFunctions.GET_OWNER, [], {callStatic: true});
+            const decodedOwnerResult = await ownerResult.decode();
+            assert.equal(decodedOwnerResult, recipientOneKeyPair.publicKey);
         });
     });
 });
