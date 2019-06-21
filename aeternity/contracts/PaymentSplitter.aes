@@ -32,7 +32,7 @@ contract PaymentSplitter =
       Map.lookup_default(who', state.recipientConditions, 0)
 
    // PAY-AND-SPLIT FUNCTION
-   public function payAndSplit() =
+   public stateful function payAndSplit() =
       require(Contract.balance > 0, "contract didn't receive any payment")
       let recipientConditions: list((address, int)) = Map.to_list(state.recipientConditions)
       split(recipientConditions, Contract.balance)
@@ -77,7 +77,7 @@ contract PaymentSplitter =
          (recipient, weight) :: l' =>
             Chain.event(RecipientAdded(recipient, weight))
 
-   private function split(recipientConditions': list((address, int)), totalValue: int) =
+   private stateful function split(recipientConditions': list((address, int)), totalValue: int) =
       switch(recipientConditions')
          [] => ()
          (recipient, weight) :: l' =>
