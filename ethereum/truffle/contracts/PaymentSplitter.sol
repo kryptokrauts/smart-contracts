@@ -4,6 +4,7 @@ import "./SafeMath.sol";
 
 contract PaymentSplitter {
   address public owner;
+  uint public totalAmountReceived;
 
   struct RecipientCondition {
     address payable recipient;
@@ -50,6 +51,7 @@ contract PaymentSplitter {
   // fallback function is used to proceed the payout to our recipients
   function() external payable {
     emit PaymentReceived(msg.sender, msg.value);
+    totalAmountReceived = totalAmountReceived.add(msg.value);
     for(uint i=0; i<recipientConditions.length; i++) {
       recipientConditions[i].recipient.transfer(msg.value.div(100).mul(recipientConditions[i].weight));
     }

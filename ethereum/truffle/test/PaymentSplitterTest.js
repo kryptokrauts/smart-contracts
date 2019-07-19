@@ -143,7 +143,8 @@ contract("PaymentSplitter", accounts => {
 
     async function testPayoutForInitialRecipients(updated) {
         let amount = new BN(1);
-        let etherValue = await web3.utils.toWei(amount, 'ether');
+        let weiValue = await web3.utils.toWei(amount, 'ether');
+        let actualTotalReceivedWei = new BN(await paymentSplitter.totalAmountReceived.call());
 
         let changeableRecipient;
         if(!updated) {
@@ -156,16 +157,19 @@ contract("PaymentSplitter", accounts => {
         let balanceRecipient2 = new BN(await web3.eth.getBalance(recipient2));
         let balanceRecipient3 = new BN(await web3.eth.getBalance(recipient3));
         
-        await web3.eth.sendTransaction({from: owner, to: paymentSplitter.address, value: etherValue });
+        await web3.eth.sendTransaction({from: owner, to: paymentSplitter.address, value: weiValue });
 
         let newBalanceRecipient1 = new BN(await web3.eth.getBalance(changeableRecipient));
         let newBalanceRecipient2 = new BN(await web3.eth.getBalance(recipient2));
         let newBalanceRecipient3 = new BN(await web3.eth.getBalance(recipient3));
+        let newTotalReceivedWei = new BN(await paymentSplitter.totalAmountReceived.call());
 
-        let expectedPayout1 = etherValue.div(new BN(100)).mul(new BN(10));
-        let expectedPayout2 = etherValue.div(new BN(100)).mul(new BN(15));
-        let expectedPayout3 = etherValue.div(new BN(100)).mul(new BN(75));
-        
+        let expectedPayout1 = weiValue.div(new BN(100)).mul(new BN(10));
+        let expectedPayout2 = weiValue.div(new BN(100)).mul(new BN(15));
+        let expectedPayout3 = weiValue.div(new BN(100)).mul(new BN(75));
+
+        assert(actualTotalReceivedWei.add(weiValue).eq(newTotalReceivedWei));
+                
         assert(balanceRecipient1.add(expectedPayout1).eq(newBalanceRecipient1));
         assert(balanceRecipient2.add(expectedPayout2).eq(newBalanceRecipient2));
         assert(balanceRecipient3.add(expectedPayout3).eq(newBalanceRecipient3));
@@ -173,24 +177,28 @@ contract("PaymentSplitter", accounts => {
 
     async function testPayoutForUpdatedRecipients() {
         let amount = new BN(1);
-        let etherValue = await web3.utils.toWei(amount, 'ether');
+        let weiValue = await web3.utils.toWei(amount, 'ether');
+        let actualTotalReceivedWei = new BN(await paymentSplitter.totalAmountReceived.call());
 
         let balanceRecipient1 = new BN(await web3.eth.getBalance(updatedRecipient1));
         let balanceRecipient2 = new BN(await web3.eth.getBalance(updatedRecipient2));
         let balanceRecipient3 = new BN(await web3.eth.getBalance(updatedRecipient3));
         let balanceRecipient4 = new BN(await web3.eth.getBalance(updatedRecipient4));
         
-        await web3.eth.sendTransaction({from: owner, to: paymentSplitter.address, value: etherValue });
+        await web3.eth.sendTransaction({from: owner, to: paymentSplitter.address, value: weiValue });
 
         let newBalanceRecipient1 = new BN(await web3.eth.getBalance(updatedRecipient1));
         let newBalanceRecipient2 = new BN(await web3.eth.getBalance(updatedRecipient2));
         let newBalanceRecipient3 = new BN(await web3.eth.getBalance(updatedRecipient3));
         let newBalanceRecipient4 = new BN(await web3.eth.getBalance(updatedRecipient4));
+        let newTotalReceivedWei = new BN(await paymentSplitter.totalAmountReceived.call());
 
-        let expectedPayout1 = etherValue.div(new BN(100)).mul(new BN(20));
-        let expectedPayout2 = etherValue.div(new BN(100)).mul(new BN(20));
-        let expectedPayout3 = etherValue.div(new BN(100)).mul(new BN(20));
-        let expectedPayout4 = etherValue.div(new BN(100)).mul(new BN(40));
+        let expectedPayout1 = weiValue.div(new BN(100)).mul(new BN(20));
+        let expectedPayout2 = weiValue.div(new BN(100)).mul(new BN(20));
+        let expectedPayout3 = weiValue.div(new BN(100)).mul(new BN(20));
+        let expectedPayout4 = weiValue.div(new BN(100)).mul(new BN(40));
+
+        assert(actualTotalReceivedWei.add(weiValue).eq(newTotalReceivedWei));
         
         assert(balanceRecipient1.add(expectedPayout1).eq(newBalanceRecipient1));
         assert(balanceRecipient2.add(expectedPayout2).eq(newBalanceRecipient2));
