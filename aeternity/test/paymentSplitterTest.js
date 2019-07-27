@@ -6,7 +6,7 @@ const BigNumber = require('bignumber.js');
 const config = {
     host: "http://localhost:3001/",
     internalHost: "http://localhost:3001/internal/",
-    compilerUrl: "https://compiler.aepps.com"
+    compilerUrl: "http://localhost:3080"
 };
 
 describe('PaymentSplitter Contract', () => {
@@ -101,7 +101,7 @@ describe('PaymentSplitter Contract', () => {
             deployedContractRecipientThree = await deployedContractOwner.from(recipientThreeKeyPair.secretKey);
             deployedContractNonRecipient = await deployedContractOwner.from(nonRecipientKeyPair.secretKey);
 
-            contractAddress = deployedContractOwner.deployInfo.address;
+            contractAddress = deployedContractOwner.address;
         });
     });
 
@@ -109,7 +109,7 @@ describe('PaymentSplitter Contract', () => {
         it('should have the correct initial state', async () => {
             // owner
             const ownerResult = await deployedContractOwner.getOwner({callStatic: true});
-            assert.equal(ownerResult, ownerKeyPair.publicKey);
+            assert.equal(ownerResult.decodedResult, ownerKeyPair.publicKey);
 
             // weights
             const expectedWeightRecipientOne = 35;
@@ -118,22 +118,22 @@ describe('PaymentSplitter Contract', () => {
             const weightRecipientOneResult = await deployedContractOwner.getWeight(recipientOneKeyPair.publicKey, {callStatic: true});
             const weightRecipientTwoResult = await deployedContractOwner.getWeight(recipientTwoKeyPair.publicKey, {callStatic: true});
             const weightRecipientThreeResult = await deployedContractOwner.getWeight(recipientThreeKeyPair.publicKey, {callStatic: true});
-            assert.equal(weightRecipientOneResult, expectedWeightRecipientOne);
-            assert.equal(weightRecipientTwoResult, expectedWeightRecipientTwo);
-            assert.equal(weightRecipientThreeResult, expectedWeightRecipientThree);
+            assert.equal(weightRecipientOneResult.decodedResult, expectedWeightRecipientOne);
+            assert.equal(weightRecipientTwoResult.decodedResult, expectedWeightRecipientTwo);
+            assert.equal(weightRecipientThreeResult.decodedResult, expectedWeightRecipientThree);
 
             // size
             const expectedRecipientsCount = 3;
             const countResult = await deployedContractOwner.getRecipientsCount({callStatic: true});
-            assert.equal(countResult, expectedRecipientsCount);
+            assert.equal(countResult.decodedResult, expectedRecipientsCount);
 
             // is recipient true (=1)
             let isRecipientResult = await deployedContractOwner.isRecipient(recipientOneKeyPair.publicKey, {callStatic: true});
-            assert.equal(1, isRecipientResult);
+            assert.equal(isRecipientResult.decodedResult, 1);
 
             // is recipient false (=0)
             isRecipientResult = await deployedContractOwner.isRecipient(nonRecipientKeyPair.publicKey, {callStatic: true});
-            assert.equal(0, isRecipientResult);
+            assert.equal(isRecipientResult.decodedResult, 0);
         });
 
         it('should split payment correctly when contract balance is 0', async () => {
@@ -170,7 +170,7 @@ describe('PaymentSplitter Contract', () => {
             await clientNonRecipient.spend(initialAettos, contractAddress.replace('ct_', 'ak_'))
             // check if contract balance is 5000 aettos
             const contractBalanceInitial = new BigNumber(await clientOwner.balance(contractAddress));
-            assert.isTrue(contractBalanceInitial.eq(initialAettos))
+            assert.isTrue(contractBalanceInitial.eq(initialAettos));
 
             const aettos = new BigNumber(2000);
             const expectedPayout1 = aettos.plus(initialAettos).dividedBy(100).multipliedBy(35);
@@ -201,23 +201,23 @@ describe('PaymentSplitter Contract', () => {
             // check if nonRecipient is now recipient
             let expectedWeight = 35;
             let weightResult = await deployedContractOwner.getWeight(nonRecipientKeyPair.publicKey, {callStatic: true});
-            assert.equal(weightResult, expectedWeight);
+            assert.equal(weightResult.decodedResult, expectedWeight);
             // check if recipientOne is no longer recipient
             let isRecipientResult = await deployedContractOwner.isRecipient(recipientOneKeyPair.publicKey, {callStatic: true});
-            assert.equal(0, isRecipientResult);
+            assert.equal(isRecipientResult.decodedResult, 0);
 
             await deployedContractOwner.updateAddress(nonRecipientKeyPair.publicKey, recipientOneKeyPair.publicKey);
             // check if recipientOne is recipient again
             weightResult = await deployedContractOwner.getWeight(recipientOneKeyPair.publicKey, {callStatic: true});
-            assert.equal(weightResult, expectedWeight);
+            assert.equal(weightResult.decodedResult, expectedWeight);
             // check if nonRecipient is again no recipient
             isRecipientResult = await deployedContractOwner.isRecipient(nonRecipientKeyPair.publicKey, {callStatic: true});
-            assert.equal(0, isRecipientResult);
+            assert.equal(isRecipientResult.decodedResult, 0);
 
             // size should still be 3
             const expectedRecipientsCount = 3;
             const countResult = await deployedContractOwner.getRecipientsCount({callStatic: true});
-            assert.equal(countResult, expectedRecipientsCount);
+            assert.equal(countResult.decodedResult, expectedRecipientsCount);
         });
 
         it('update all recipientConditions fails as other caller than owner', async () => {
@@ -240,12 +240,12 @@ describe('PaymentSplitter Contract', () => {
             // size should now be 6
             const expectedRecipientsCount = 6;
             const countResult = await deployedContractOwner.getRecipientsCount({callStatic: true});
-            assert.equal(countResult, expectedRecipientsCount);
+            assert.equal(countResult.decodedResult, expectedRecipientsCount);
 
             // check the weight of recipientFive
             let expectedWeight = 25;
             let weightResult = await deployedContractOwner.getWeight(recipientFiveKeyPair.publicKey, {callStatic: true});
-            assert.equal(weightResult, expectedWeight);
+            assert.equal(weightResult.decodedResult, expectedWeight);
         });
 
         it('transfer of ownership fails as other caller than owner', async () => {
@@ -260,7 +260,7 @@ describe('PaymentSplitter Contract', () => {
         it('transfer of ownership succeeds as owner', async () => {
             await deployedContractOwner.transferOwnership(recipientOneKeyPair.publicKey);
             const ownerResult = await deployedContractOwner.getOwner({callStatic: true});
-            assert.equal(ownerResult, recipientOneKeyPair.publicKey);
+            assert.equal(ownerResult.decodedResult, recipientOneKeyPair.publicKey);
         });
     });
 });
