@@ -141,7 +141,6 @@ describe('PaymentSplitter Contract', () => {
             const recipientTwoBalanceInitial = new BigNumber(await clientRecipientTwo.balance(recipientTwoKeyPair.publicKey));
             const recipientThreeBalanceInitial = new BigNumber(await clientRecipientThree.balance(recipientThreeKeyPair.publicKey));
 
-            console.log(contractAddress);
             // check if contract balance is 0
             const contractBalanceInitial = new BigNumber(await clientOwner.balance(contractAddress));
             assert.equal(contractBalanceInitial, 0)
@@ -151,7 +150,7 @@ describe('PaymentSplitter Contract', () => {
             const expectedPayout2 = aettos.dividedBy(100).multipliedBy(40);
             const expectedPayout3 = aettos.dividedBy(100).multipliedBy(25);
 
-            await deployedContractNonRecipient.payAndSplit({value: aettos});
+            await deployedContractNonRecipient.payAndSplit({amount: aettos});
             const recipientOneBalanceNew = new BigNumber(await clientRecipientOne.balance(recipientOneKeyPair.publicKey));
             const recipientTwoBalanceNew = new BigNumber(await clientRecipientTwo.balance(recipientTwoKeyPair.publicKey));
             const recipientThreeBalanceNew = new BigNumber(await clientRecipientThree.balance(recipientThreeKeyPair.publicKey));
@@ -177,7 +176,7 @@ describe('PaymentSplitter Contract', () => {
             const expectedPayout2 = aettos.plus(initialAettos).dividedBy(100).multipliedBy(40);
             const expectedPayout3 = aettos.plus(initialAettos).dividedBy(100).multipliedBy(25);
 
-            await deployedContractNonRecipient.payAndSplit({value: aettos});
+            await deployedContractNonRecipient.payAndSplit({amount: aettos});
             const recipientOneBalanceNew = new BigNumber(await clientRecipientOne.balance(recipientOneKeyPair.publicKey));
             const recipientTwoBalanceNew = new BigNumber(await clientRecipientTwo.balance(recipientTwoKeyPair.publicKey));
             const recipientThreeBalanceNew = new BigNumber(await clientRecipientThree.balance(recipientThreeKeyPair.publicKey));
@@ -185,6 +184,11 @@ describe('PaymentSplitter Contract', () => {
             assert.isTrue(recipientOneBalanceNew.eq(recipientOneBalanceInitial.plus(expectedPayout1)));
             assert.isTrue(recipientTwoBalanceNew.eq(recipientTwoBalanceInitial.plus(expectedPayout2)));
             assert.isTrue(recipientThreeBalanceNew.eq(recipientThreeBalanceInitial.plus(expectedPayout3)));
+
+            // we check whether the total amount splitted is correct
+            const totalAmountSplittedResult = await deployedContractOwner.getTotalAmountSplitted({callStatic: true});
+            const totalAmountSplitted = new BigNumber(totalAmountSplittedResult.decodedResult)
+            assert.isTrue(totalAmountSplitted.eq(aettos.multipliedBy(2).plus(initialAettos)));
         });
 
         it('update address fails as wrong caller', async () => {
