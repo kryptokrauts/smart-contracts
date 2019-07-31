@@ -11,6 +11,6 @@
   "dependencies": {
     "@aeternity/aepp-sdk": "^4.2.0",
     "forgae-lib": "2.0.0",
-    "yarn": "1.16.0"
+    "yarn": "1.17.3"
   }
 }
