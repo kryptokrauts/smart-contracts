@@ -44,7 +44,7 @@ contract PaymentSplitter =
       split(recipientConditions, Contract.balance)
       Chain.event(PaymentReceivedAndSplitted(Call.caller, Call.value, Contract.balance))
 
-   // STATEFUL FUNCTIONS
+   // OTHER STATEFUL FUNCTIONS
 
    stateful entrypoint transferOwnership(newOwner': address) =
       onlyOwner()
