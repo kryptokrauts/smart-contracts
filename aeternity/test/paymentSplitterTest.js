@@ -1,5 +1,5 @@
 const Ae = require('@aeternity/aepp-sdk').Universal;
-const Deployer = require('forgae-lib').Deployer;
+const Deployer = require('aeproject-lib').Deployer;
 const CONTRACT_PATH = "./contracts/PaymentSplitter.aes";
 const BigNumber = require('bignumber.js');
 
