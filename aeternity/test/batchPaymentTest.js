@@ -1,5 +1,5 @@
 const Ae = require('@aeternity/aepp-sdk').Universal;
-const Deployer = require('forgae-lib').Deployer;
+const Deployer = require('aeproject-lib').Deployer;
 const CONTRACT_PATH = "./contracts/BatchPayment.aes";
 const BigNumber = require('bignumber.js');
 
@@ -92,21 +92,6 @@ describe('BatchPayment Contract', () => {
             assert.isTrue(recipientOneBalanceNew.eq(recipientOneBalanceInitial.plus(recipientOneAmount)));
             assert.isTrue(recipientTwoBalanceNew.eq(recipientTwoBalanceInitial.plus(recipientTwoAmount)));
             assert.isTrue(recipientThreeBalanceNew.eq(recipientThreeBalanceInitial.plus(recipientThreeAmount)));
-        });
-
-        it('transfer of ownership fails as other caller than owner', async () => {
-            try {
-                await deployedContractRecipientOne.transferOwnership(recipientOneKeyPair.publicKey);
-                assert.fail(); 
-            } catch (e) {
-                console.log(e.decodedError);
-            }
-        });
-
-        it('transfer of ownership succeeds as owner', async () => {
-            await deployedContractOwner.transferOwnership(recipientOneKeyPair.publicKey);
-            const ownerResult = await deployedContractOwner.getOwner({callStatic: true});
-            assert.equal(ownerResult.decodedResult, recipientOneKeyPair.publicKey);
         });
     });
 });

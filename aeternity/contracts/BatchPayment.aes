@@ -1,46 +1,23 @@
 contract BatchPayment =
-    record state = { owner : address }
-
-    // CONSTRUCTOR
-    entrypoint init() : state =
-        { owner = Call.caller }
-
-    // READ ONLY FUNCTIONS
-
-    entrypoint getOwner() : address =
-        state.owner
 
     // STATEFUL FUNCTIONS
 
-    stateful entrypoint proceedBatchPayment(recipients': map(address, int)) =
+    payable stateful entrypoint proceedBatchPayment(recipients': map(address, int)) =
         require(sumValues(recipients') == Call.value, "funds insufficient")
-        let recipientList: list((address, int)) = Map.to_list(recipients')
+        let recipientList: list((address * int)) = Map.to_list(recipients')
         proceedSinglePayments(recipientList)
 
-    stateful function proceedSinglePayments(recipients': list((address, int))) =
+    stateful function proceedSinglePayments(recipients': list((address * int))) =
         switch(recipients')
             [] => ()
             (recipient, value) :: l' =>
                 Chain.spend(recipient, value)
                 proceedSinglePayments(l')
 
-    // recover accidentially sent funds
-    stateful entrypoint recoverFunds() =
-        onlyOwner()
-        require(Contract.balance > 0, "no funds to recover")
-        Chain.spend(Call.caller, Contract.balance)
-
-    stateful entrypoint transferOwnership(newOwner': address) =
-        onlyOwner()
-        put(state{owner = newOwner'})
-
     // PRIVATE FUNCTIONS
 
-    function onlyOwner() =
-        require(Call.caller == state.owner, "caller must be the owner")
-
     function sumValues(recipients': map(address, int)) : int =
-        let recipients: list((address, int)) = Map.to_list(recipients')
+        let recipients: list((address * int)) = Map.to_list(recipients')
         let intList: list(int) = map(pair_second, recipients)
         sum(intList, (x) => x)
 
