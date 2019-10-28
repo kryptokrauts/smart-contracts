@@ -1,3 +1,19 @@
+// ISC License
+//
+// Copyright (c) 2019, kryptokrauts.com
+//
+// Permission to use, copy, modify, and/or distribute this software for any
+// purpose with or without fee is hereby granted, provided that the above
+// copyright notice and this permission notice appear in all copies.
+//
+// THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+// REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+// AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+// INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+// LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
+// OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+// PERFORMANCE OF THIS SOFTWARE.
+//
 payable contract PaymentSplitter =
    record state =
       {  owner: address,
@@ -12,11 +28,11 @@ payable contract PaymentSplitter =
       | PaymentReceivedAndSplitted(indexed address, indexed int, indexed int)
 
    // INIT FUNCTION
-   entrypoint init(recipientConditions': map(address, int)) : state =
-      require(sumWeights(recipientConditions') == 100, "sum of weights needs to be 100")
+   entrypoint init(recipientConditions: map(address, int)) : state =
+      require(sumWeights(recipientConditions) == 100, "sum of weights needs to be 100")
       Chain.event(AddingInitialRecipients)
       {  owner = Call.caller,
-         recipientConditions = recipientConditions',
+         recipientConditions = recipientConditions,
          totalAmountSplitted = 0}
 
    // READ ONLY FUNCTIONS
@@ -27,11 +43,11 @@ payable contract PaymentSplitter =
    entrypoint getRecipientsCount() : int =
       Map.size(state.recipientConditions)
 
-   entrypoint isRecipient(who': address) : bool =
-      Map.member(who', state.recipientConditions)
+   entrypoint isRecipient(who: address) : bool =
+      Map.member(who, state.recipientConditions)
 
-   entrypoint getWeight(who': address) : int =
-      Map.lookup_default(who', state.recipientConditions, 0)
+   entrypoint getWeight(recipient: address) : int =
+      Map.lookup_default(recipient, state.recipientConditions, 0)
 
    entrypoint getTotalAmountSplitted() : int =
       state.totalAmountSplitted
@@ -46,22 +62,22 @@ payable contract PaymentSplitter =
 
    // STATEFUL FUNCTIONS
 
-   stateful entrypoint transferOwnership(newOwner': address) =
+   stateful entrypoint transferOwnership(newOwner: address) =
       onlyOwner()
-      put(state{owner = newOwner'})
+      put(state{owner = newOwner})
 
-   stateful entrypoint updateAddress(oldAddress': address, newAddress': address) =
-      onlyOwnerOrRecipient(oldAddress')
-      let weight: int = state.recipientConditions[oldAddress']
-      put(state{recipientConditions @ rc = Map.delete(oldAddress', rc)}) // remove old address
-      put(state{recipientConditions[newAddress'] = weight}) // add new address
-      Chain.event(AddressUpdated(oldAddress', newAddress'))
+   stateful entrypoint updateAddress(oldAddress: address, newAddress: address) =
+      onlyOwnerOrRecipient(oldAddress)
+      let weight: int = state.recipientConditions[oldAddress]
+      put(state{recipientConditions @ rc = Map.delete(oldAddress, rc)}) // remove old address
+      put(state{recipientConditions[newAddress] = weight}) // add new address
+      Chain.event(AddressUpdated(oldAddress, newAddress))
 
-   stateful entrypoint updateRecipientConditions(recipients': map(address, int)) =
+   stateful entrypoint updateRecipientConditions(recipients: map(address, int)) =
       onlyOwner()
       Chain.event(UpdatingAllRecipients)
-      require(sumWeights(recipients') == 100, "sum of weights needs to be 100")
-      put(state{recipientConditions = recipients'})
+      require(sumWeights(recipients) == 100, "sum of weights needs to be 100")
+      put(state{recipientConditions = recipients})
       fireRecipientAddedEvents(Map.to_list(state.recipientConditions))
 
    // PRIVATE FUNCTIONS
@@ -69,22 +85,22 @@ payable contract PaymentSplitter =
    function onlyOwner() =
       require(Call.caller == state.owner, "caller must be the owner")
 
-   function onlyOwnerOrRecipient(recipient': address) =
-      require(Call.caller == state.owner || Call.caller == recipient', "caller must be the owner or the recipient")
+   function onlyOwnerOrRecipient(recipient: address) =
+      require(Call.caller == state.owner || Call.caller == recipient, "caller must be the owner or the recipient")
 
-   function sumWeights(recipients': map(address, int)) : int =
-      let recipientList: list(address * int) = Map.to_list(recipients')
+   function sumWeights(recipients: map(address, int)) : int =
+      let recipientList: list(address * int) = Map.to_list(recipients)
       let intList: list(int) = map(pair_second, recipientList)
       sum(intList, (x) => x)
 
-   function fireRecipientAddedEvents(recipientConditions': list(address * int)) =
-      switch(recipientConditions')
+   function fireRecipientAddedEvents(recipientConditions: list(address * int)) =
+      switch(recipientConditions)
          [] => ()
          (recipient, weight) :: l' =>
             Chain.event(RecipientAdded(recipient, weight))
 
-   stateful function split(recipientConditions': list(address * int), totalValue: int) =
-      switch(recipientConditions')
+   stateful function split(recipientConditions: list(address * int), totalValue: int) =
+      switch(recipientConditions)
          [] => ()
          (recipient, weight) :: l' =>
             Chain.spend(recipient, totalValue / 100 * weight)
